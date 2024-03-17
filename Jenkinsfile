@@ -15,6 +15,13 @@ pipeline {
             }
         }
 
+        stage('Checkout GitHub Code') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], 
+                userRemoteConfigs: [[url: 'https://github.com/Rvi851994/serverless_deployment.git']]])
+            }
+        }
+
         stage('Initialize Terraform') {
             steps {
                 withCredentials([[
@@ -44,7 +51,7 @@ pipeline {
                             def tableExists = bat(script: "aws dynamodb describe-table --table-name ${it.table}", returnStatus: true)
                             if (tableExists == 0) {
                                 echo "Table ${it.table} exists. Importing..."
-                                bat "terraform import ${it.resource} ${it.table}"
+                                bat "cd terraform && terraform import ${it.resource} ${it.table}"
                             } else {
                                 echo "Table ${it.table} does not exist. No import required."
                             }
@@ -70,7 +77,7 @@ pipeline {
                             if (bucketExists == 0) {
                                 echo "Bucket ${bucketName} exists. Attempting to import..."
                                 try {
-                                    bat "terraform import aws_s3_bucket.my_bucket ${bucketName}"
+                                    bat "cd terraform && terraform import aws_s3_bucket.my_bucket ${bucketName}"
                                 } catch (Exception e) {
                                     echo "An error occurred during import: ${e.getMessage()}"
                                     echo "Continuing with the pipeline..."
@@ -102,19 +109,6 @@ pipeline {
                     credentialsId: 'ravi_verma_aws'
                 ]]) {
                     bat 'cd terraform && terraform apply -auto-approve'
-                }
-            }
-        }
-
-        stage('Deploy Serverless Components') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'ravi_verma_aws'
-                ]]) {
-                    echo "Placeholder for serverless deployment commands."
-                    // Add your Serverless Framework deployment commands here
-                    // Example: bat 'serverless deploy'
                 }
             }
         }

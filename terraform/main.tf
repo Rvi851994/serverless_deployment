@@ -74,18 +74,18 @@ resource "aws_dynamodb_table" "ml_chat_poc_messages" {
     }
 }
 
-# S3 Bucket: ai-ian-datalake-test
-resource "aws_s3_bucket" "ai_ian_datalake_test" {
-  bucket = "ai-ian-datalake-test"
+# S3 Bucket: ai-ian-datalake-testing
+resource "aws_s3_bucket" "ai_ian_datalake_testing" {
+  bucket = "ai-ian-datalake-testing"
 
   tags = {
-    Name = "ai-ian-datalake-test"
+    Name = "ai-ian-datalake-testing"
   }
 }
 
 # S3 bucket server side encryption
 resource "aws_s3_bucket_server_side_encryption_configuration" "ai_ian_datalake_test_server_side_encryption" {
-    bucket = aws_s3_bucket.ai_ian_datalake_test.id
+    bucket = aws_s3_bucket.ai_ian_datalake_testing.id
 
     rule {
       apply_server_side_encryption_by_default {
@@ -96,7 +96,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "ai_ian_datalake_t
 
 # S3 bucket access block
 resource "aws_s3_bucket_public_access_block" "ai_ian_datalake_test_public_access_block" {
-    bucket = aws_s3_bucket.ai_ian_datalake_test.id
+    bucket = aws_s3_bucket.ai_ian_datalake_testing.id
 
     block_public_acls   = true
     block_public_policy = true
@@ -107,7 +107,7 @@ resource "aws_s3_bucket_public_access_block" "ai_ian_datalake_test_public_access
 # S3 bucket cloudtaril
 resource "aws_cloudtrail" "repay-default" {
   name = "repay-default"
-  s3_bucket_name = aws_s3_bucket.ai_ian_datalake_test.id
+  s3_bucket_name = aws_s3_bucket.ai_ian_datalake_testing.id
   include_global_service_events = true
   is_multi_region_trail = true
   enable_logging = true
@@ -124,7 +124,7 @@ resource "aws_cloudtrail" "repay-default" {
 
 # Attach S3 bucket policy to allow CloudTrail to write logs
 resource "aws_s3_bucket_policy" "my_log_bucket_policy" {
-  bucket = aws_s3_bucket.ai_ian_datalake_test.id
+  bucket = aws_s3_bucket.ai_ian_datalake_testing.id
 
   policy = jsonencode({
     Version   = "2012-10-17",
@@ -136,8 +136,8 @@ resource "aws_s3_bucket_policy" "my_log_bucket_policy" {
         ],
         Effect    = "Allow",
         Resource = [
-          "${aws_s3_bucket.ai_ian_datalake_test.arn}",
-          "${aws_s3_bucket.ai_ian_datalake_test.arn}/*"
+          "${aws_s3_bucket.ai_ian_datalake_testing.arn}",
+          "${aws_s3_bucket.ai_ian_datalake_testing.arn}/*"
         ],
         Principal = {
           Service = "cloudtrail.amazonaws.com"

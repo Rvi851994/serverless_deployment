@@ -1,0 +1,149 @@
+service: AskIANLambdaServerless
+
+provider:
+  name: aws
+  apiGateway:
+    apiKeys:
+      - name: ${opt:stage}-repay-amazonq-API-key
+
+  runtime: python3.11
+  region: us-east-1
+  httpApi:
+    id: ek8kx61bv2
+  eventBridge:
+    useCloudFormation: true
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+        - "s3:GetObject"
+        - "s3:PutObject"
+        - "kendra:Query"
+        - "kendra:GetQuerySuggestions"
+        - "kendra:DescribeIndex"
+        - "kendra:BatchPutDocument"
+        - "sagemaker:InvokeEndpoint"
+      Resource: ${ssm:/askIan/policy-arn}
+  environment:
+    env: qa
+    kendra_index_id: "43fe3eeb-3663-4b01-9e4e-c8bf7eb95de0"
+    llm_model: "anthropic.claude-instant-v1"
+
+functions:
+  getChatResponse-blue:
+    handler: lambda_get_chat_response_blue.lambda_handler
+    name: getChatResponse-blue-${opt:stage, self:provider.stage}
+    memorySize: 256
+    timeout: 30
+    events:
+      - httpApi:
+          path: /getChatResponse-blue
+          method: ANY
+
+  getSignedURL:
+    handler: lambda_get_signed_url.lambda_handler
+    name: getSignedURL-${opt:stage}
+    memorySize: 128
+    timeout: 3
+    events:
+      - httpApi:
+          path: /getSignedURL
+          method: POST
+    package:
+      individually: true
+      exclude:
+        - '*'
+      include:
+        - 'lambda_get_signed_url.py'
+
+  getChatResponse:
+    handler: lambda_get_chat_response.lambda_handler
+    name: getChatResponse-${opt:stage, self:provider.stage}
+    memorySize: 512
+    timeout: 30
+    events:
+      - httpApi:
+          path: /getChatResponse
+          method: ANY
+
+  getS3BucketInsights:
+    handler: lambda_get_s3_bucket_insights.lambda_handler
+    name: getS3BucketInsights-${opt:stage, self:provider.stage}
+    memorySize: 128
+    timeout: 3
+    events:
+      - httpApi:
+          path: /getS3BucketInsights
+          method: POST
+
+  AskIanLambdaAuthenticator:
+    handler: lambda_ask_ian_authenticator.lambda_handler
+    name: AskIanLambdaAuthenticator-${opt:stage, self:provider.stage}
+    memorySize: 128
+    timeout: 3
+
+  showpad_connector:
+    handler: lambda_showpad_connector.lambda_handler
+    name: showpad_connector-${opt:stage, self:provider.stage}
+    memorySize: 256
+    timeout: 900   
+
+  getKendraVectorSpace:
+    handler: lambda_get_kendra_vector_space.lambda_handler
+    name: getKendraVectorSpace-${opt:stage, self:provider.stage}
+    memorySize: 128
+    timeout: 3
+
+  getChatMessages:
+    handler: lambda_get_chat_messages.lambda_handler
+    name: getChatMessages-${opt:stage}
+    role: ${ssm:/askIan/getChatMessages-role-arn}
+    timeout: 3
+    events:
+      - httpApi:
+          path: /getChatMessages
+          method: POST
+    package:
+      individually: true
+      exclude:
+        - '*'
+      include:
+        - 'lambda_get_chat_messages.py'
+
+  getAnalysisMetrics:
+    handler: lambda_get_analysis_metrics.lambda_handler
+    name: getAnalysisMetrics-${opt:stage}
+    role: ${ssm:/askIan/getAnalysisMetrics-role-arn}
+    timeout: 180
+    events:
+      - httpApi:
+          path: /getAnalysisMetrics
+          method: POST
+    package:
+      individually: true
+      exclude:
+        - '*'
+      include:
+        - 'lambda_get_analysis_metrics.py'
+    layers:
+      - arn:aws:lambda:us-west-2:336392948345:layer:AWSSDKPandas-Python311:5
+
+  getGenAIDataBackup:
+    handler: lambda_get_gen_ai_data_backup.lambda_handler
+    name: getGenAIDataBackup-${opt:stage}
+    role: ${ssm:/askIan/getGenAIDataBackup-role-arn}
+    timeout: 180
+    events:
+      - eventBridge:
+          eventBus: arn:aws:events:us-west-2:202836596688:event-bus/default
+          schedule: cron(0/30 * * * ? *)
+          name: AskIan-S3Backup-Trigger
+          description: AskIan Repay Chat Daily Scheduled Trigger
+    package:
+      individually: true
+      exclude:
+        - '*'
+      include:
+        - 'lambda_get_gen_ai_data_backup.py'
+    layers:
+      - arn:aws:lambda:us-west-2:336392948345:layer:AWSSDKPandas-Python311:5
